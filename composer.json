@@ -1,0 +1,34 @@
+{
+  "name": "fitdev-pro/json-db",
+  "description": "Simply implementation of data storage in json files",
+  "type": "library",
+  "license": "MIT",
+  "homepage": "https://fitdev.pro",
+  "authors": [
+    {
+      "name": "Karol Kondraciuk",
+      "email": "karol.kondraciuk@fitdev.pro",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "beberlei/assert": "^2.7"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^6.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "FitdevPro\\JsonDb\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "FitdevPro\\JsonDb\\Tests\\": "tests/src",
+      "FitdevPro\\JsonDb\\TestsLib\\": "tests/lib"
+    }
+  },
+  "config": {
+    "bin-dir": "bin"
+  }
+}
