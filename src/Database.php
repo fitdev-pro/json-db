@@ -71,7 +71,7 @@ class Database
      * @throws NotFoundException
      */
     public function read($path){
-        if(isset($this->$transactionCache[$path])){
+        if(isset($this->transactionCache[$path])){
             $data = $this->transactionData[$path];
 
             if(is_null($data)){
@@ -118,18 +118,26 @@ class Database
      * @throws WriteException
      */
     public function getNextId($path){
-        if($this->fileSystem->has($path . '.auto')){
-            $id = $this->fileSystem->read($path . '.auto') + 1;
-        }else{
-            $id = 1;
+        $path = $path. '.auto';
+
+        if($this->transaction > 0 && isset($this->transactionCache[$path])){
+            $id = $this->transactionData[$path];
+        }
+        elseif($this->fileSystem->has($path)){
+            $id = $this->fileSystem->read($path);
+        }
+        else{
+            $id = 0;
         }
 
+        $id++;
+
         if($this->transaction > 0){
-//            $this->transactionData[] = ['type'=>'put', 'path'=>$path, 'value'=>$data];
-//            $this->transactionCache[$path] = $data;
-//            return true;
+            $this->transactionData[] = ['type'=>'put', 'path'=>$path, 'value'=>$id];
+            $this->transactionCache[$path] = $id;
         }else{
-            $writeAutoIncrementResult = $this->fileSystem->put($path . '.auto', $id);
+            $writeAutoIncrementResult = $this->fileSystem->put($path, $id);
+
             if(!$writeAutoIncrementResult){
                 throw new WriteException('Failed write autoincrement.');
             }

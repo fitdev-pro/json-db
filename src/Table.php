@@ -171,12 +171,7 @@ class Table
      */
 	public function repair($repairCallable)
 	{
-		foreach ($this->fileSystem->dirContent($this->path) as $fileInfo){
-            if($fileInfo['type'] != 'file' || $fileInfo['basename'] == '.auto'){
-                continue;
-            }
-
-            $id = $fileInfo['basename'];
+        foreach ($this->db->readAll($this->path) as $id){
 			$data = $this->findById($id);
 
 			$repairCallable($this, $data);
