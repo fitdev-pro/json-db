@@ -7,11 +7,10 @@ class NotFoundException extends JsonDbException
 
     /**
      * NotFoundException constructor.
-     * @param $table
-     * @param $id
+     * @param $path
      */
-    public function __construct($table, $id)
+    public function __construct($path)
     {
-        $this->message = 'Nie udało się znaleźć wyszukiwanego wpisu w tabelce ' . $table . ' o id = ' . $id;
+        $this->message = 'Nie udało się znaleźć wyszukiwanego wpisu ' . $path;
     }
 }

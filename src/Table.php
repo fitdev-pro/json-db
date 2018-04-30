@@ -8,36 +8,28 @@ use FitdevPro\JsonDb\Exceptions\WriteException;
 class Table
 {
     /**
-     * @var IFileSystem
+     * @var Database
      */
-    protected $fileSystem;
+    protected $db;
 
     /**
      * @var string
      */
     protected $path;
 
-	/**
-	 * Table constructor.
-	 *
-	 * @param IFileSystem $fileSystem
-	 * @param $path
-	 */
-    public function __construct(IFileSystem $fileSystem, string $path)
+    /**
+     * Table constructor.
+     * @param $db
+     * @param string $path
+     */
+    public function __construct($db, string $path)
     {
-        $this->fileSystem = $fileSystem;
+        $this->db = $db;
 
         $this->path = (string)rtrim($path, '/') . '/';
 
-        $this->makeDir();
+        $this->db->createTableIfNotExists($path);
     }
-
-	private function makeDir()
-	{
-		if (!$this->fileSystem->has($this->path)) {
-			$this->fileSystem->createDir($this->path);
-		}
-	}
 
     /**
      * Find data matching key-value map or callback
@@ -73,17 +65,13 @@ class Table
 
     /**
      * @param $id
-     * @return bool|mixed
+     * @return mixed
      * @throws NotFoundException
      */
     private function findById($id)
     {
-        if ($this->fileSystem->has($this->path . $id)) {
-            $data = $this->fileSystem->read($this->path . $id);
-            return json_decode($data, true);
-        }
-
-        throw new NotFoundException($this->path, $id);
+        $data = $this->db->read($this->path . $id);
+        return json_decode($data, true);
     }
 
     /**
@@ -96,13 +84,8 @@ class Table
 	{
 		$results = [];
 
-		foreach ($this->fileSystem->dirContent($this->path) as $fileInfo)
+		foreach ($this->db->readAll($this->path) as $id)
 		{
-		    if($fileInfo['type'] != 'file' || $fileInfo['basename'] == '.auto'){
-		        continue;
-            }
-
-			$id = $fileInfo['basename'];
 			$data = $this->findById($id);
 
 			$match = true;
@@ -132,14 +115,10 @@ class Table
 	private function filterCallable($where, $first)
 	{
 		$results = [];
-		foreach ($this->fileSystem->dirContent($this->path) as $fileInfo)
-		{
-            if($fileInfo['type'] != 'file' || $fileInfo['basename'] == '.auto'){
-                continue;
-            }
-
-            $id = $fileInfo['basename'];
+        foreach ($this->db->readAll($this->path) as $id)
+        {
 			$data = $this->findById($id);
+
 			if ($where($data)) {
 				if ($first) {
 					return $data;
@@ -159,20 +138,10 @@ class Table
     public function save($data)
     {
         if (!isset($data['id']) || (!is_string($data['id']) && !is_int($data['id']))) {
-            if($this->fileSystem->has($this->path . '.auto')){
-                $id = $this->fileSystem->read($this->path . '.auto') + 1;
-            }else{
-                $id = 1;
-            }
-
-            $writeAutoIncrementResult = $this->fileSystem->put($this->path . '.auto', $id);
-            if(!$writeAutoIncrementResult){
-                throw new WriteException('Failed write autoincrement');
-            }
-            $data['id'] = $id;
+            $data['id'] = $this->db->getNextId($this->path);
         }
 
-	    return $this->fileSystem->put($this->path . $data['id'], json_encode($data));
+	    return $this->db->save($this->path . $data['id'], json_encode($data));
     }
 
     /**
@@ -190,7 +159,7 @@ class Table
 
 	    $results = false;
     	foreach ($data as $row){
-		    $results[$row['id']] = $this->fileSystem->delete($this->path . $row['id']);
+		    $results[$row['id']] = $this->db->delete($this->path . $row['id']);
 	    }
 
 	    return $results;
