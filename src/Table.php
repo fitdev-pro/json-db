@@ -22,13 +22,25 @@ class Table
      * @param $db
      * @param string $path
      */
-    public function __construct($db, string $path)
+    public function __construct(Database $db, string $path)
     {
         $this->db = $db;
 
         $this->path = (string)rtrim($path, '/') . '/';
 
-        $this->db->createTableIfNotExists($path);
+        $this->db->createTableIfNotExists($this->path);
+    }
+
+    /**
+     * Find first item key-value map or callback
+     *
+     * @param null $where
+     * @return array
+     * @throws NotFoundException
+     */
+    public function findFirst($where = null)
+    {
+        return $this->find($where, true);
     }
 
     /**
@@ -41,26 +53,36 @@ class Table
      */
 	public function find($where = [], $first = false)
 	{
-        if (!is_array($where)) {
-			return $this->findById($where);
-		}
-		else if (is_callable($where)) {
-			return $this->filterCallable($where, $first);
+        if (is_callable($where)) {
+            return $this->filterCallable($where, $first);
+        } elseif (is_string($where) || is_int($where)) {
+            return $this->findById($where);
         } else {
 			return $this->filterArray($where, $first);
 		}
 	}
 
     /**
-     * Find first item key-value map or callback
-     *
-     * @param null $where
-     * @return array
+     * @param $where
+     * @param $first
+     * @return array|bool|mixed
      * @throws NotFoundException
      */
-	public function findFirst($where = null)
+    private function filterCallable($where, $first)
 	{
-		return $this->find($where, true);
+        $results = [];
+        foreach ($this->db->readAll($this->path) as $id) {
+            $data = $this->findById($id);
+
+            if ($where($data)) {
+                if ($first) {
+                    return $data;
+                }
+                $results[$id] = $data;
+            }
+        }
+
+        return $results;
 	}
 
     /**
@@ -96,30 +118,6 @@ class Table
 				}
 			}
 			if ($match) {
-				if ($first) {
-					return $data;
-				}
-				$results[$id] = $data;
-			}
-		}
-
-		return $results;
-	}
-
-    /**
-     * @param $where
-     * @param $first
-     * @return array|bool|mixed
-     * @throws NotFoundException
-     */
-	private function filterCallable($where, $first)
-	{
-		$results = [];
-        foreach ($this->db->readAll($this->path) as $id)
-        {
-			$data = $this->findById($id);
-
-			if ($where($data)) {
 				if ($first) {
 					return $data;
 				}

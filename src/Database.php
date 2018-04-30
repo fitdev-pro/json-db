@@ -1,6 +1,7 @@
 <?php
 
 namespace FitdevPro\JsonDb;
+
 use FitdevPro\JsonDb\Exceptions\NotFoundException;
 use FitdevPro\JsonDb\Exceptions\WriteException;
 
@@ -32,6 +33,13 @@ class Database
         return $this->tables[$name];
     }
 
+    public function createTableIfNotExists($path)
+    {
+        if (!$this->fileSystem->has($path)) {
+            $this->fileSystem->createDir($path);
+        }
+    }
+
     public function begin()
     {
         $this->transaction++;
@@ -49,20 +57,20 @@ class Database
                     $this->fileSystem->delete($data['path']);
                 }
             }
+            $this->clearTransaction();
         }
+    }
+
+    private function clearTransaction()
+    {
+        $this->transaction = 0;
+        $this->transactionData = [];
+        $this->transactionCache = [];
     }
 
     public function rollback()
     {
-        $this->transaction = 0;
-        $this->transactionData = [];
-    }
-
-    public function createTableIfNotExists($path)
-    {
-        if (!$this->fileSystem->has($path)) {
-            $this->fileSystem->createDir($path);
-        }
+        $this->clearTransaction();
     }
 
     /**
@@ -71,8 +79,8 @@ class Database
      * @throws NotFoundException
      */
     public function read($path){
-        if(isset($this->transactionCache[$path])){
-            $data = $this->transactionData[$path];
+        if ($this->transaction > 0 && isset($this->transactionCache[$path])) {
+            $data = $this->transactionCache[$path];
 
             if(is_null($data)){
                 throw new NotFoundException($path);
@@ -148,6 +156,8 @@ class Database
 
     public function save($path, $data)
     {
+        $data = json_encode($data);
+
         if($this->transaction > 0){
             $this->transactionData[] = ['type'=>'put', 'path'=>$path, 'value'=>$data];
             $this->transactionCache[$path] = $data;
