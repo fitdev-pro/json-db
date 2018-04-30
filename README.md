@@ -1,11 +1,11 @@
-# FitRouter
+# FitJsonDb
 
-PHP 7.0 HTTP Router Implementation.
+PHP 7.0 Simply development data storage.
 
 ## Installation
 
 ```
-composer require fitdev-pro/router
+composer require fitdev-pro/json-db
 ```
 
 ## Usage
@@ -13,18 +13,12 @@ composer require fitdev-pro/router
 Base usage
 ```php
 <?php
-use FitdevPro\FitRouter\Router;
-use FitdevPro\FitRouter\Request\HttpRequest;
-use FitdevPro\FitRouter\RouteCollection\RouteCollection;
-use FitdevPro\FitRouter\UrlGenerator\BaseGenerator;
-use FitdevPro\FitRouter\RouteMatchers\MVCDynamicMatcher;
+use FitdevPro\JsonDb\Database;
 
-$routerRequest = new HttpRequest();
-$routerRequest->addRequestParam('extra', 'FooBar');
+$db = new Database($file_system);
+$table = $db->getTable('Person');
 
-$router = new Router(new RouteCollection(), new MVCDynamicMatcher(), new BaseGenerator());
-
-$route = $router->match( $routerRequest );
+$person = $table->findFirst(['email'=>'test@test.com']);
 ```
 
 ## Contribute
@@ -34,4 +28,4 @@ To establish a consistent code quality, please provide unit tests for all your c
 
 ## License
 
-The MIT License (MIT). Please see [License File](https://github.com/fitdev-pro/router/blob/master/LISENCE) for more information.
+The MIT License (MIT). Please see [License File](https://github.com/fitdev-pro/json-db/blob/master/LISENCE) for more information.
