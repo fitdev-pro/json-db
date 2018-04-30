@@ -36,7 +36,9 @@ class Database
     public function createTableIfNotExists($path)
     {
         if (!$this->fileSystem->has($path)) {
-            $this->fileSystem->createDir($path);
+            if (!$this->fileSystem->createDir($path)) {
+                throw new WriteException('Failed to create dir for table: ' . $path);
+            }
         }
     }
 
@@ -78,8 +80,9 @@ class Database
      * @return mixed
      * @throws NotFoundException
      */
-    public function read($path){
-        if ($this->transaction > 0 && isset($this->transactionCache[$path])) {
+    public function read($path): array
+    {
+        if ($this->transaction > 0 && (is_string($this->transactionCache[$path]) || is_null($this->transactionCache[$path]))) {
             $data = $this->transactionCache[$path];
 
             if(is_null($data)){
@@ -101,7 +104,7 @@ class Database
      * @return array
      * @throws NotFoundException
      */
-    public function readAll($path)
+    public function readAll($path): array
     {
         $out = [];
 
@@ -126,12 +129,9 @@ class Database
      * @throws WriteException
      */
     public function getNextId($path){
-        $path = $path. '.auto';
+        $path = $path . '/.auto';
 
-        if($this->transaction > 0 && isset($this->transactionCache[$path])){
-            $id = $this->transactionData[$path];
-        }
-        elseif($this->fileSystem->has($path)){
+        if ($this->fileSystem->has($path)) {
             $id = $this->fileSystem->read($path);
         }
         else{
@@ -140,21 +140,14 @@ class Database
 
         $id++;
 
-        if($this->transaction > 0){
-            $this->transactionData[] = ['type'=>'put', 'path'=>$path, 'value'=>$id];
-            $this->transactionCache[$path] = $id;
-        }else{
-            $writeAutoIncrementResult = $this->fileSystem->put($path, $id);
-
-            if(!$writeAutoIncrementResult){
-                throw new WriteException('Failed write autoincrement.');
-            }
+        if (!$this->fileSystem->put($path, $id)) {
+            throw new WriteException('Failed write autoincrement.');
         }
 
         return $id;
     }
 
-    public function save($path, $data)
+    public function save(string $path, $data)
     {
         $data = json_encode($data);
 
@@ -163,7 +156,11 @@ class Database
             $this->transactionCache[$path] = $data;
             return true;
         }else{
-            return $this->fileSystem->put($path, $data);
+            if (!$this->fileSystem->put($path, $data)) {
+                throw new WriteException('Failed write file: ' . $path . ' with data: ' . $data);
+            }
+
+            return true;
         }
     }
 
@@ -174,7 +171,9 @@ class Database
             $this->transactionCache[$path] = null;
             return true;
         }else{
-            return $this->fileSystem->delete($path);
+            if (!$this->fileSystem->delete($path)) {
+                throw new WriteException('Failed deleting file: ' . $path);
+            }
         }
     }
 }

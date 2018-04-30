@@ -31,10 +31,10 @@ final class TableTest extends TestCase
         $db = $this->prophesize(Database::class);
         $db->createTableIfNotExists('Person/')->shouldBeCalled()->willReturn(true);
         $db->readAll('Person/')->willReturn([1, 2, 3, 4]);
-        $db->read('Person/1')->willReturn(json_encode(['id' => 1, 'zupa' => 'pomidorowa']));
-        $db->read('Person/2')->willReturn(json_encode(['id' => 2, 'zupa' => 'ogorkowa']));
-        $db->read('Person/3')->willReturn(json_encode(['id' => 3, 'zupa' => 'rosol']));
-        $db->read('Person/4')->willReturn(json_encode(['id' => 4, 'zupa' => 'pomidorowa']));
+        $db->read('Person/1')->willReturn(['id' => 1, 'zupa' => 'pomidorowa']);
+        $db->read('Person/2')->willReturn(['id' => 2, 'zupa' => 'ogorkowa']);
+        $db->read('Person/3')->willReturn(['id' => 3, 'zupa' => 'rosol']);
+        $db->read('Person/4')->willReturn(['id' => 4, 'zupa' => 'pomidorowa']);
 
         return $db;
     }
@@ -50,6 +50,27 @@ final class TableTest extends TestCase
         $this->assertArrayHasKey(4, $out);
         $this->assertEquals(['id' => 1, 'zupa' => 'pomidorowa'], $out[1]);
         $this->assertEquals(['id' => 4, 'zupa' => 'pomidorowa'], $out[4]);
+    }
+
+    public function testFindByDataCallable()
+    {
+        $db = $this->getDbMock();
+
+        $table = new Table($db->reveal(), 'Person');
+        $out1 = $table->find(function ($row) {
+            return $row['id'] > 2;
+        }, true);
+
+        $outAll = $table->find(function ($row) {
+            return $row['id'] > 2;
+        });
+
+        $this->assertEquals(['id' => 3, 'zupa' => 'rosol'], $out1);
+
+        $this->assertArrayHasKey(3, $outAll);
+        $this->assertArrayHasKey(4, $outAll);
+        $this->assertEquals(['id' => 3, 'zupa' => 'rosol'], $outAll[3]);
+        $this->assertEquals(['id' => 4, 'zupa' => 'pomidorowa'], $outAll[4]);
     }
 
     public function testFindFirstByData()

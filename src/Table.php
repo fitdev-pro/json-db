@@ -92,8 +92,7 @@ class Table
      */
     private function findById($id)
     {
-        $data = $this->db->read($this->path . $id);
-        return json_decode($data, true);
+        return $this->db->read($this->path . $id);
     }
 
     /**
