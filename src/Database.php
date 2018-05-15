@@ -82,7 +82,7 @@ class Database
      */
     public function read($path): array
     {
-        if ($this->transaction > 0 && (is_string($this->transactionCache[$path]) || is_null($this->transactionCache[$path]))) {
+        if ($this->transaction > 0 && (isset($this->transactionCache[$path]) && (is_string($this->transactionCache[$path]) || is_null($this->transactionCache[$path])))) {
             $data = $this->transactionCache[$path];
 
             if(is_null($data)){

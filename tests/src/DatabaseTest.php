@@ -179,12 +179,15 @@ final class DatabaseTest extends TestCase
     public function testTransactionRead()
     {
         $fileSystem = $this->prophesize(IFileSystem::class);
+        $fileSystem->has('Person/2')->shouldBeCalled()->willReturn(true);
+        $fileSystem->read('Person/2')->shouldBeCalled()->willReturn(json_encode(['FooBar' => 1]));
 
         $database = new Database($fileSystem->reveal());
         $database->begin();
         $database->save('Person/1', ['FooBar' => 2]);
 
         $this->assertEquals(['FooBar' => 2], $database->read('Person/1'));
+        $this->assertEquals(['FooBar' => 1], $database->read('Person/2'));
     }
 
     public function testTransactionRolback()

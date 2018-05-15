@@ -123,7 +123,7 @@ class Table
 
             $match = true;
             foreach ($where as $key => $value) {
-                if (@$data[$key] !== $value) {
+                if (!isset($data[$key]) || (isset($data[$key]) && $data[$key] !== $value)) {
                     $match = false;
                     break;
                 }
