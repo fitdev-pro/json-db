@@ -23,7 +23,7 @@ final class TableTest extends TestCase
         $table = new Table($db->reveal(), 'Person');
         $out = $table->find(3);
 
-        $this->assertEquals(['id' => 3, 'zupa' => 'rosol'], $out);
+        $this->assertEquals([3=>['id' => 3, 'zupa' => 'rosol']], $out);
     }
 
     private function getDbMock()
@@ -97,6 +97,21 @@ final class TableTest extends TestCase
         $this->assertArrayHasKey(4, $out);
         $this->assertEquals(['id' => 1, 'zupa' => 'pomidorowa'], $out[1]);
         $this->assertEquals(['id' => 4, 'zupa' => 'pomidorowa'], $out[4]);
+    }
+
+    /**
+     * @expectedException  \FitdevPro\JsonDb\Exceptions\NotFoundException
+     */
+    public function testNotFound()
+    {
+        $db = $this->getDbMock();
+
+        $table = new Table($db->reveal(), 'Person');
+        $out = $table->find(['zupa' => 'krupnik']);
+
+        $this->assertEquals([], $out);
+
+        $out = $table->findFirst(['zupa' => 'krupnik']);
     }
 
     public function testSave()

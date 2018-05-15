@@ -19,8 +19,9 @@ class Table
 
     /**
      * Table constructor.
-     * @param $db
+     * @param Database $db
      * @param string $path
+     * @throws WriteException
      */
     public function __construct(Database $db, string $path)
     {
@@ -51,43 +52,54 @@ class Table
      * @return array|object
      * @throws NotFoundException
      */
-	public function find($where = [], $first = false)
-	{
+    public function find($where = [], $first = false)
+    {
         if (is_callable($where)) {
-            return $this->filterCallable($where, $first);
+            $out = $this->filterCallable($where, $first);
         } elseif (is_string($where) || is_int($where)) {
-            return $this->findById($where);
+            $out = $this->findById($where);
+            $out = [$out['id']=>$out];
         } else {
-			return $this->filterArray($where, $first);
-		}
-	}
+            $out = $this->filterArray($where, $first);
+        }
+
+        if($first){
+            if(empty($out)){
+                throw new NotFoundException('');
+            }
+
+            return current($out);
+        }
+
+        return $out;
+    }
 
     /**
      * @param $where
      * @param $first
-     * @return array|bool|mixed
+     * @return array
      * @throws NotFoundException
      */
     private function filterCallable($where, $first)
-	{
+    {
         $results = [];
         foreach ($this->db->readAll($this->path) as $id) {
             $data = $this->findById($id);
 
             if ($where($data)) {
                 if ($first) {
-                    return $data;
+                    return [$data['id']=>$data];
                 }
                 $results[$id] = $data;
             }
         }
 
         return $results;
-	}
+    }
 
     /**
      * @param $id
-     * @return mixed
+     * @return array
      * @throws NotFoundException
      */
     private function findById($id)
@@ -96,36 +108,36 @@ class Table
     }
 
     /**
-     * @param $where
-     * @param $first
-     * @return array|bool|mixed
+     * @param array $where
+     * @param bool $first
+     * @return array
      * @throws NotFoundException
      */
-	private function filterArray($where, $first)
-	{
-		$results = [];
+    private function filterArray($where, $first)
+    {
+        $results = [];
 
-		foreach ($this->db->readAll($this->path) as $id)
-		{
-			$data = $this->findById($id);
+        foreach ($this->db->readAll($this->path) as $id)
+        {
+            $data = $this->findById($id);
 
-			$match = true;
-			foreach ($where as $key => $value) {
-				if (@$data[$key] !== $value) {
-					$match = false;
-					break;
-				}
-			}
-			if ($match) {
-				if ($first) {
-					return $data;
-				}
-				$results[$id] = $data;
-			}
-		}
+            $match = true;
+            foreach ($where as $key => $value) {
+                if (@$data[$key] !== $value) {
+                    $match = false;
+                    break;
+                }
+            }
+            if ($match) {
+                if ($first) {
+                    return [$data['id']=>$data];
+                }
+                $results[$id] = $data;
+            }
+        }
 
-		return $results;
-	}
+        return $results;
+    }
 
     /**
      * @param $data
@@ -138,40 +150,41 @@ class Table
             $data['id'] = $this->db->getNextId($this->path);
         }
 
-	    return $this->db->save($this->path . $data['id'], json_encode($data));
+        return $this->db->save($this->path . $data['id'], json_encode($data));
     }
 
     /**
      * @param $where
      * @return bool
      * @throws NotFoundException
+     * @throws WriteException
      */
     public function delete($where)
     {
-    	$data = $this->find($where);
+        $data = $this->find($where);
 
-    	if(isset($data['id'])){
-    	    $data = [$data['id'] => $data];
+        if(isset($data['id'])){
+            $data = [$data['id'] => $data];
         }
 
-	    $results = false;
-    	foreach ($data as $row){
-		    $results[$row['id']] = $this->db->delete($this->path . $row['id']);
-	    }
+        $results = false;
+        foreach ($data as $row){
+            $results[$row['id']] = $this->db->delete($this->path . $row['id']);
+        }
 
-	    return $results;
+        return $results;
     }
 
     /**
      * @param $repairCallable
      * @throws NotFoundException
      */
-	public function repair($repairCallable)
-	{
+    public function repair($repairCallable)
+    {
         foreach ($this->db->readAll($this->path) as $id){
-			$data = $this->findById($id);
+            $data = $this->findById($id);
 
-			$repairCallable($this, $data);
-		}
-	}
+            $repairCallable($this, $data);
+        }
+    }
 }
